@@ -51,8 +51,9 @@ the exact word `APPLY` and applies only that reviewed saved plan. It never runs
 After apply, it waits for ECS stability; checks all three services are 1/1/0,
 the pinned image digests and DCC container user, private application subnets,
 security groups, and absence of public task IPs; verifies RDS, Redis, and
-Cloud Map; runs private HTTP/database/cache smoke checks; checks current task
-logs; and requires the final Terraform plan to report `No changes`.
+Cloud Map; runs private HTTP/database/cache smoke checks and public ALB checks
+for DCC root, health, discovery, and a static asset; checks current task logs;
+and requires the final Terraform plan to report `No changes`.
 
 The private smoke test launches one temporary Fargate task from the existing
 Test API task definition in the existing VPC and stops it after completion.
@@ -82,6 +83,8 @@ The script's private diagnostic task verifies:
   `/api/orders`.
 - PostgreSQL and Redis availability via `/ready`; Redis unique-key
   write/read/delete.
+- Public ALB: `/`, `/api/health/`, `/api/services/`, and a discovered static
+  JS/CSS asset, all expected to return HTTP 200.
 
 For a manual AWS-side check, use ECS service status in cluster
 `dcc-testlab-cluster` and inspect the private CloudWatch log groups:
@@ -92,6 +95,9 @@ For a manual AWS-side check, use ECS service status in cluster
 
 The application URLs are private Cloud Map names, not public endpoints:
 `dcc-app.dcc-test.internal` and `dcc-test-api.dcc-test.internal`.
+The public DCC HTTP entry point is the Terraform output
+`dcc_alb_url` (also `http://<ALB-DNS-NAME>/`); no domain record or TLS
+certificate is configured.
 
 ## Troubleshooting
 

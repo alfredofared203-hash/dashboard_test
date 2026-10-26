@@ -345,3 +345,33 @@ The Cloud Map registry configuration was corrected to reference the existing A-r
 - Private smoke checks returned `/api/health/` **200**, `/` **200**, and a JS asset **200**. `/api/services/` returned **503**, an allowed outcome when AWS discovery is not configured. CloudWatch startup logs were normal. Test Lab API and Worker remained `1/1`.
 - **Caveat:** Cloud Map discovery returns the DCC task and private address, but its `AWS_INIT_HEALTH_STATUS` attribute is `UNHEALTHY`; ECS reports the task/container healthy and private HTTP checks succeeded. Do not represent this Cloud Map health attribute as healthy.
 - Final Terraform plan: **No changes**. No secrets were exposed; no unrelated infrastructure was changed.
+
+## Task 51 — Public DCC HTTP access through ALB
+
+**Date:** 2026-10-26  
+**Status:** **PASS**
+
+DCC is reachable through the public HTTP Application Load Balancer in the
+existing VPC. The ECS task remains in the private application subnets with no
+public IP; Test API, Test Worker, PostgreSQL, Redis, and Cloud Map remain
+private. The ALB spans the existing public subnets in `eu-north-1a` and
+`eu-north-1b`. Its security group allows only inbound TCP 80 from
+`0.0.0.0/0`, and DCC TCP 8000 accepts traffic only from the ALB security
+group.
+
+- Public URL:
+  `http://dcc-testlab-dcc-alb-1175057588.eu-north-1.elb.amazonaws.com/`
+- HTTP:80 listener forwards to the ECS-managed IP target group on HTTP:8000.
+- Target health check: `GET /api/health/`, HTTP 200; current target healthy.
+- Public DCC root, health, static JS, and `/api/services/` requests returned
+  HTTP 200.
+- No HTTPS listener, ACM certificate, or Route 53 record was created.
+- Updated DCC image digest:
+  `sha256:a82d54d7b014f7643e29f0dc23762bab9033ca2cb05488907b0ecb708722b2fc`.
+- Terraform plan applied: `7 added, 1 changed, 3 destroyed`; the three
+  removals were explicitly authorized old diagnostic-worker DCC security
+  group rules and the previous immutable DCC task-definition revision.
+- Final Terraform plan: **No changes**.
+
+See [the Task 51 apply record](../../infra/terraform/test-lab/APPLY_REPORT.md)
+for resource identifiers and detailed verification.

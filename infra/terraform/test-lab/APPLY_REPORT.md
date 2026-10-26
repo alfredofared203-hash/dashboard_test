@@ -408,3 +408,43 @@ Current DCC, API, and Worker task log streams were checked; no current startup t
 - Next deployment command from the repository root: `.\scripts\deploy-lab.ps1`.
 
 **Task 50 status: COMPLETE.** The complete existing lab stack is operational for the verified paths. No secret value was exposed.
+
+## Task 51 — Public DCC Access Through ALB
+
+**Date:** 2026-10-26  
+**Region/account:** `eu-north-1` / `366314473733`  
+**Status:** **PASS — DCC publicly reachable through ALB; ECS tasks and data remain private**
+
+### Pre-apply and plan review
+
+- Inspected the existing 81-resource Terraform state, VPC `vpc-0b196d7bdefb910fc`, public and private subnets, DCC security groups, and active DCC ECS service before editing.
+- The original DCC image rejected the ALB's target-IP Host header on `/api/health/`, which would have caused the required target-group health check to fail. With user approval, added a minimal health-path host normalization and regression tests; other routes continue rejecting unlisted hosts. The ALB listener rewrites public request Host headers to the existing allowed DCC internal host.
+- Backend regression suite: **139 tests passed**. Terraform `fmt -check` and `validate`: **PASS**. Built and pushed the Linux/amd64 DCC image as non-root `10001:10001`; image content scan found no environment files, Terraform state/plan, private-key marker, or AWS access-key pattern.
+- New immutable DCC image: `dcc-alb-20261026-0825`, digest `sha256:a82d54d7b014f7643e29f0dc23762bab9033ca2cb05488907b0ecb708722b2fc`.
+- Fresh plan: **7 to add, 1 to change, 3 to destroy**. User explicitly authorized applying after the plan identified the exact three destroy actions: remove the old diagnostic-worker-to-DCC ingress rule, remove the corresponding diagnostic-worker DCC egress rule, and deregister/replace the prior immutable DCC task-definition revision. No other destroy, replacement, or unrelated infrastructure action was present. The exact fresh saved plan was rechecked against its resource/action allowlist immediately before apply.
+
+### Terraform apply
+
+- Applied the reviewed saved plan: **7 added, 1 changed, 3 destroyed**.
+- Added the dedicated ALB security group, internet-facing ALB, IP target group, HTTP listener, listener host-rewrite rule, and ALB-only TCP 8000 DCC ingress rule.
+- Updated the DCC ECS service with the ALB target group and deployed `dcc-app:4`.
+- The two explicitly authorized old diagnostic SG rules and prior immutable DCC task-definition revision were removed/deregistered.
+- No VPC, subnet, route/NAT, RDS, Redis, ECS cluster, Test API/Worker service, ECR repository, or Cloud Map namespace/service was destroyed or replaced.
+
+### Live verification
+
+- ALB: `dcc-testlab-dcc-alb`, scheme **internet-facing**, state **active**.
+- Exact public URL: `http://dcc-testlab-dcc-alb-1175057588.eu-north-1.elb.amazonaws.com/`.
+- Existing public subnets: `subnet-0a7196b610f41e79c` (`eu-north-1a`) and `subnet-0fe488e8b077fb4a4` (`eu-north-1b`).
+- Listener: HTTP port 80 only; default action forwards to the DCC target group. No HTTPS listener, certificate, or Route 53 record was created.
+- Target group: IP type, HTTP 8000, health check `HTTP /api/health/`, `traffic-port`, matcher `200`; current target `10.80.29.34:8000` is **healthy** and was registered by the ECS service (no hard-coded task IP).
+- ALB SG `sg-0c89f1e5681be15d6`: inbound TCP 80 only from `0.0.0.0/0`; outbound TCP 8000 only to DCC SG `sg-06bf45d27e5bfb57f`.
+- DCC SG permits TCP 8000 only from the ALB SG. Diagnostic-worker DCC ingress/egress rules are removed.
+- Public requests: `/api/health/` **200**, `/` **200**, discovered JS asset **200**, `/api/services/` **200** (3 services).
+- DCC ECS: desired/running/pending **1/1/0**, task `8aaf288a0dfa42ec918576b40ecf759a`, task definition `dcc-app:4`, container `RUNNING/HEALTHY`, user `10001:10001`, image digest `sha256:a82d54d7b014f7643e29f0dc23762bab9033ca2cb05488907b0ecb708722b2fc`. It remains in private subnet `subnet-0107c10a8e8ab289f`, with no public IP.
+- Test API and Worker remain 1/1 with no ALB association and public IP assignment disabled. RDS remains available with `PubliclyAccessible=false`; Redis remains available with at-rest and in-transit encryption.
+- Current DCC startup log shows normal Gunicorn startup; no matched startup/access/secret errors.
+- Final Terraform `fmt -check`, `validate`, and plan: **PASS; No changes**. Terraform state contains **85 resources**.
+- No secret value was printed or recorded.
+
+**Task 51 status: COMPLETE.** The public entry point is the AWS ALB DNS URL above; ECS task IPs and all Test Lab/data services remain private.

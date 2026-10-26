@@ -503,6 +503,29 @@ try {
     $apiTaskDefinition = ($services | Where-Object { $_.serviceName -eq "api-service" }).taskDefinition
     Invoke-PrivateSmokeTest $apiTaskDefinition $PrivateSubnets $securityGroups.diagnostic_worker
 
+    $publicUrl = Get-NativeText "terraform" @("-chdir=$TerraformDirectory", "output", "-raw", "dcc_alb_url")
+    $publicDns = Get-NativeText "terraform" @("-chdir=$TerraformDirectory", "output", "-raw", "dcc_alb_dns_name")
+    if ($publicUrl -notmatch "^http://$([regex]::Escape($publicDns))/") {
+        throw "Terraform ALB URL output is not the expected HTTP URL for the ALB DNS name."
+    }
+    $publicHealth = Invoke-WebRequest -Uri "$publicUrl" -UseBasicParsing -TimeoutSec 30
+    $publicApiHealth = Invoke-WebRequest -Uri "${publicUrl}api/health/" -UseBasicParsing -TimeoutSec 30
+    $publicServices = Invoke-WebRequest -Uri "${publicUrl}api/services/" -UseBasicParsing -TimeoutSec 30
+    if ($publicHealth.StatusCode -ne 200 -or $publicApiHealth.StatusCode -ne 200 -or $publicServices.StatusCode -ne 200) {
+        throw "Public ALB DCC root, health, or service-discovery endpoint did not return HTTP 200."
+    }
+    $assetMatch = [regex]::Match($publicHealth.Content, '(?i)(?:src|href)=["'']([^"'']+\.(?:js|css)(?:\?[^"'']*)?)["'']')
+    if (-not $assetMatch.Success) {
+        throw "No JS/CSS asset URL was discoverable from the public ALB DCC root."
+    }
+    $assetPath = $assetMatch.Groups[1].Value.Split("?")[0]
+    if (-not $assetPath.StartsWith("/")) { $assetPath = "/$assetPath" }
+    $publicAsset = Invoke-WebRequest -Uri "http://$publicDns$assetPath" -UseBasicParsing -TimeoutSec 30
+    if ($publicAsset.StatusCode -ne 200) {
+        throw "Public ALB static asset did not return HTTP 200."
+    }
+    Write-Host "PASS: public ALB $publicUrl root/health/services/static-asset checks returned HTTP 200."
+
     Assert-CurrentTaskLogs "/ecs/dcc-testlab/dcc-app" "dcc" "dcc-app" $runningTasks["dcc-app-service"].taskArn.Split("/")[-1]
     Assert-CurrentTaskLogs "/ecs/dcc-testlab/api" "api" "api" $runningTasks["api-service"].taskArn.Split("/")[-1]
     Assert-CurrentTaskLogs "/ecs/dcc-testlab/worker" "worker" "worker" $runningTasks["worker-service"].taskArn.Split("/")[-1]
