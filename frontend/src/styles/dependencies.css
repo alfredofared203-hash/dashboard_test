@@ -1,0 +1,44 @@
+.dependencies-page { min-width: 0; }
+.dependency-context { min-height: 38px; margin: 14px 0; padding: 8px 11px; display: flex; align-items: center; gap: 8px; border: 1px solid #2a3c52; border-radius: 5px; background: #141e2a; color: #a8b9ce; font-size: 9px; }
+.dependency-context svg { flex: 0 0 auto; color: #83aee5; }
+.dependency-context code { color: #c4d3e6; font-family: "IBM Plex Mono", monospace; overflow-wrap: anywhere; }
+.dependency-toolbar { margin: 15px 0 10px; display: flex; align-items: center; gap: 9px; color: #8b9aae; font-size: 9px; }
+.dependency-toolbar select { min-height: 30px; padding: 0 26px 0 9px; border: 1px solid #2b3645; border-radius: 4px; background: #111822; color: #c4cedb; font: inherit; }
+.dependency-toolbar > span { margin-left: auto; color: #75859a; }
+.dependency-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.dependency-card { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+.dependency-card-heading { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.dependency-icon { width: 31px; height: 31px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid #30445b; border-radius: 5px; background: #182637; color: #92b9e9; }
+.dependency-identity { min-width: 0; flex: 1; }
+.dependency-identity h2 { margin: 0 0 3px; color: #dce5ef; font-size: 10px; font-weight: 600; overflow-wrap: anywhere; }
+.dependency-identity p { margin: 0; color: #8391a4; font-size: 8px; }
+.dependency-health { max-width: 42%; padding: 4px 7px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #344352; border-radius: 10px; color: #aab8c9; font-family: "IBM Plex Mono", monospace; font-size: 7px; text-align: center; }
+.dependency-health > span { width: 5px; height: 5px; flex: 0 0 auto; border-radius: 50%; background: currentColor; }
+.dependency-health-available { border-color: #294539; background: #13231d; color: #9ed8b8; }
+.dependency-health-unavailable { border-color: #55452d; background: #211d17; color: #dfbd77; }
+.dependency-card-meta { margin: 11px 0 9px; padding: 8px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 1px solid #202a37; border-bottom: 1px solid #202a37; }
+.dependency-card-meta span { color: #78889c; font-size: 7px; }
+.dependency-card-meta strong { color: #b7c4d3; font-size: 8px; font-weight: 500; text-align: right; text-transform: capitalize; }
+.dependency-card-meta .dependency-mock-source { color: #dfbd77; }
+.dependency-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.dependency-metric { min-width: 0; padding: 8px; display: grid; gap: 5px; border: 1px solid #202a37; border-radius: 4px; background: #0f151e; }
+.dependency-metric > span { color: #8694a7; font-size: 7px; }
+.dependency-metric > strong { overflow-wrap: anywhere; color: #d0dae6; font-family: "IBM Plex Mono", monospace; font-size: 9px; font-weight: 500; }
+.dependency-metric > small { color: #728197; font-size: 7px; }
+.dependency-inline-empty { grid-column: 1 / -1; margin: 4px 0; color: #8290a2; font-size: 8px; }
+.dependency-readonly-note { margin: 12px 0 0; color: #708095; font-size: 8px; line-height: 1.55; }
+.dependency-state { min-height: 210px; padding: 25px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: #8392a5; text-align: center; }
+.dependency-state > strong { color: #d1dbe7; font-size: 10px; font-weight: 500; }
+.dependency-state > span:not(.dependency-spinner) { max-width: 440px; color: #8491a3; font-size: 8px; line-height: 1.55; }
+.dependency-state-error { color: #df9298; }
+.dependency-state-error .inline-flex { margin-top: 4px; }
+.dependency-spinner { width: 20px; height: 20px; border: 2px solid #2d3b4c; border-top-color: #7eaff1; border-radius: 50%; animation: dependency-spin .8s linear infinite; }
+@keyframes dependency-spin { to { transform: rotate(360deg); } }
+@media (max-width: 900px) { .dependency-list { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 420px) {
+  .dependency-card { padding: 9px; }
+  .dependency-card-heading { align-items: flex-start; flex-wrap: wrap; }
+  .dependency-health { max-width: 100%; margin-left: 40px; }
+  .dependency-metric { padding: 7px; }
+  .dependency-context { align-items: flex-start; }
+}
